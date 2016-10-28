@@ -1,7 +1,23 @@
-import akka.stream.{ActorMaterializer, OverflowStrategy}
-import akka.stream.scaladsl.{Keep, Sink, Source}
+import akka.stream.{ActorMaterializer}
+import akka.stream.scaladsl.{Keep, Sink}
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.concurrent.duration.FiniteDuration
+
+case class AsyncCall[T](wrapped: () => Future[T]) extends Call {
+  val promise = Promise[T]
+
+  def run: Future[T] = {
+    val call = wrapped()
+    promise.completeWith(call)
+    call
+  }
+
+  def dropped() = {
+    promise.failure(new java.util.concurrent.TimeoutException("Call was dropped"))
+    ()
+  }
+
+}
 
 class RateLimiter(
   val limit:        Int,
@@ -12,19 +28,17 @@ class RateLimiter(
   implicit
   materializer: ActorMaterializer
 ) {
-  val (input, out) =  Source.actorRef[() => Future[_]](bufferSize, OverflowStrategy.dropHead)
+
+  val (input, out) =  ActorRefSource[AsyncCall[_]](bufferSize)
                           .via(new SlidingThrottle(limit, time))
-                          .mapAsync(parallelism){ call => call() }
+                          .mapAsync(parallelism){ call => call.run }
                           .toMat(Sink.ignore)(Keep.both)
                           .run()
 
   def enqueue[T](call: => Future[T]): Future[T] = {
-    val promise = Promise[T]
-    val wrapped = { () => promise.completeWith(call) }
-
-    input ! wrapped
-
-    promise.future
+    val ac = AsyncCall(() => call)
+    input ! ac
+    ac.promise.future
   }
 }
 
@@ -42,7 +56,9 @@ class RateLimiterWithTimeout(
 ) extends RateLimiter(limit, time, parallelism, bufferSize)(materializer) {
 
   def withTimeout[T](fut: Future[T], delay: FiniteDuration): Future[T] = {
-    val delayed = akka.pattern.after(delay, using = system.scheduler)(Future.failed[T](new RuntimeException("Timeout")))
+    val delayed = akka.pattern.after(delay, using = system.scheduler)(Future.failed[T](
+      new java.util.concurrent.TimeoutException("Timeout"))
+    )
     Future.firstCompletedOf(Seq(fut, delayed))
   }
 
