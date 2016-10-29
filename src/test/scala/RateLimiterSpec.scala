@@ -1,3 +1,5 @@
+package timshel
+
 import java.util.concurrent.TimeoutException
 
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}

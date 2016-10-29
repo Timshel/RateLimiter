@@ -5,7 +5,8 @@ scalaVersion := "2.11.8"
 
 resolvers := Seq(
   "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/",
-  DefaultMavenRepository
+  DefaultMavenRepository,
+  Resolver.bintrayRepo("mfglabs", "maven")
 )
 
 scalacOptions := Seq(
@@ -30,5 +31,6 @@ parallelExecution in Test := false
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream" % "2.4.11",
   "com.typesafe.akka" %% "akka-testkit" % "2.4.8" % "test",
-  "org.scalatest" %% "scalatest" % "2.2.4" % "test"
+  "org.scalatest" %% "scalatest" % "2.2.4" % "test",
+  "com.mfglabs" %% "precepte-core" % "0.4.2"
 )

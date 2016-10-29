@@ -1,3 +1,5 @@
+package timshel
+
 import akka.stream.{ActorMaterializer}
 import akka.stream.scaladsl.{Keep, Sink}
 import scala.concurrent.{ExecutionContext, Future, Promise}

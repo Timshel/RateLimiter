@@ -1,3 +1,5 @@
+package timshel
+
 import akka.stream.impl.fusing.GraphStages.SimpleLinearGraphStage
 import akka.stream.stage._
 import akka.stream._

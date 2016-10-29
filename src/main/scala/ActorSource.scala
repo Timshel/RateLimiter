@@ -1,3 +1,4 @@
+package timshel
 
 import akka.actor.ActorRef
 import akka.stream.{Attributes, MaterializationContext, SourceShape}
